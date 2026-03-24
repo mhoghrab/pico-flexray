@@ -2,8 +2,6 @@
 ; and raises an interrupt after each one, without ever stopping.
 
 .program flexray_bss_streamer
-.fifo rx
-.in 1 left auto 8 ; BSS is MSB first, Shift left, autopush
 .side_set 1 opt ; Side-set pin 0 is used to control the transmitter enable (TX_EN)
 
 .define public IDLE_COUNT 10     ; For 11 * 10 = 110 cycle initial idle check.
@@ -87,6 +85,9 @@ void flexray_bss_streamer_program_init(PIO pio, uint sm, uint offset, uint rx_pi
     // oversample by 10, 10MHz flexray bit rate, 100MHz clock
     float div = (float)clock_get_hz(clk_sys) / (10 * 1000000 * 10);
     sm_config_set_clkdiv(&c, div);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    sm_config_set_in_shift(&c, false, true, 8);
+
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
 }

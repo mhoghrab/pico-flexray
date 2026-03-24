@@ -195,7 +195,7 @@ static void setup_dma(void){
     channel_config_set_write_increment(&injector_to_vehicle_dc, false);
     channel_config_set_dreq(&injector_to_vehicle_dc, pio_get_dreq(pio_forwarder_with_injector, sm_forwarder_with_injector_to_vehicle, true)); // TX pacing
     dma_channel_set_config((uint)dma_inject_chan_to_vehicle, &injector_to_vehicle_dc, false);        
-    dma_channel_set_write_addr((uint)dma_inject_chan_to_vehicle, (void *)&pio2->txf[sm_forwarder_with_injector_to_vehicle], false);
+    dma_channel_set_write_addr((uint)dma_inject_chan_to_vehicle, (void *)&pio_forwarder_with_injector->txf[sm_forwarder_with_injector_to_vehicle], false);
     
     injector_to_ecu_dc = dma_channel_get_default_config((uint)dma_inject_chan_to_ecu);
     channel_config_set_transfer_data_size(&injector_to_ecu_dc, DMA_SIZE_32);
@@ -204,7 +204,7 @@ static void setup_dma(void){
     channel_config_set_write_increment(&injector_to_ecu_dc, false);
     channel_config_set_dreq(&injector_to_ecu_dc, pio_get_dreq(pio_forwarder_with_injector, sm_forwarder_with_injector_to_ecu, true)); // TX pacing
     dma_channel_set_config((uint)dma_inject_chan_to_ecu, &injector_to_ecu_dc, false);        
-    dma_channel_set_write_addr((uint)dma_inject_chan_to_ecu, (void *)&pio2->txf[sm_forwarder_with_injector_to_ecu], false);
+    dma_channel_set_write_addr((uint)dma_inject_chan_to_ecu, (void *)&pio_forwarder_with_injector->txf[sm_forwarder_with_injector_to_ecu], false);
 
 }
 

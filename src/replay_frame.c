@@ -106,7 +106,7 @@ void setup_replay(PIO pio, uint replay_pin)
     flexray_replay_q8_frame_program_init(pio, sm, offset, replay_pin);
 
     uint dma_chan = dma_claim_unused_channel(true);
-    // uint dma_replay_rearm_chan = dma_claim_unused_channel(true);
+    uint dma_replay_rearm_chan = dma_claim_unused_channel(true);
     dma_channel_config dma_c = dma_channel_get_default_config(dma_chan);
 
     channel_config_set_transfer_data_size(&dma_c, DMA_SIZE_32);
@@ -122,9 +122,8 @@ void setup_replay(PIO pio, uint replay_pin)
         ring_size_log2 = 32 - __builtin_clz(buffer_size_bytes - 1);
     }
     channel_config_set_ring(&dma_c, false, ring_size_log2); // false = wrap read address
-    // channel_config_set_chain_to(&dma_c, dma_replay_rearm_chan);
+    channel_config_set_chain_to(&dma_c, dma_replay_rearm_chan);
 
-    buffer_words = buffer_words | 0x10000000; // rp2350's self trigger
     dma_channel_configure(
         dma_chan,
         &dma_c,
@@ -133,4 +132,18 @@ void setup_replay(PIO pio, uint replay_pin)
         buffer_words,           // Transfer count: one full buffer
         true                    // Start immediately
     );
+
+    // Rearm channel: writes buffer_words back to dma_chan's trigger alias so
+    // the replay loops forever (RP2040 has no hardware self-trigger).
+    static uint32_t replay_rearm_val;
+    replay_rearm_val = buffer_words;
+    dma_channel_config rearm_c = dma_channel_get_default_config(dma_replay_rearm_chan);
+    channel_config_set_transfer_data_size(&rearm_c, DMA_SIZE_32);
+    channel_config_set_read_increment(&rearm_c, false);
+    channel_config_set_write_increment(&rearm_c, false);
+    dma_channel_configure(dma_replay_rearm_chan, &rearm_c,
+        &dma_hw->ch[dma_chan].al1_transfer_count_trig,
+        &replay_rearm_val,
+        1,
+        false);
 }

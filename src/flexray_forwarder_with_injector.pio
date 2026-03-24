@@ -1,9 +1,6 @@
 ; --------------- Program 1: The Forwarder with Injector ---------------
 
 .program flexray_forwarder_with_injector
-.fifo tx
-.mov_status txfifo < 1
-.out 1 left auto 32
 .define public IDLE_COUNT 10
 
 .wrap_target
@@ -68,6 +65,9 @@ void flexray_forwarder_with_injector_program_init(PIO pio, uint sm, uint offset,
     sm_config_set_jmp_pin(&c, rx_pin);
     float div = (float)clock_get_hz(clk_sys) / (10 * 1000000 * 10);
     sm_config_set_clkdiv(&c, div);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_mov_status(&c, STATUS_TX_LESSTHAN, 1);
+    sm_config_set_out_shift(&c, false, true, 32);
 
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);

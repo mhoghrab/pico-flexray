@@ -31,7 +31,7 @@ static uint streamer_sm_from_vehicle;
 // Sizes are defined in header
 
 // DMA block size per data-channel before chaining to rearm
-#define DMA_BLOCK_COUNT_BYTES  (4096u | 0x10000000) // self trigger
+#define DMA_BLOCK_COUNT_BYTES  4096u
 
 volatile uint8_t ecu_ring_buffer[ECU_RING_SIZE_BYTES] __attribute__((aligned(ECU_RING_SIZE_BYTES)));
 volatile uint8_t vehicle_ring_buffer[VEH_RING_SIZE_BYTES] __attribute__((aligned(VEH_RING_SIZE_BYTES)));
@@ -249,6 +249,31 @@ void setup_stream(PIO pio,
                           &pio->rxf[sm_from_vehicle],    // Source: PIO RX FIFO
                           DMA_BLOCK_COUNT_BYTES,
                           true);
+
+    // Configure rearm channels: each writes DMA_BLOCK_COUNT_BYTES back to the
+    // data channel's trigger alias, restarting it after every block (RP2040 has
+    // no hardware self-trigger, so we chain instead of using the 0x10000000 flag).
+    static const uint32_t ecu_rearm_val = DMA_BLOCK_COUNT_BYTES;
+    dma_channel_config rearm_c_ecu = dma_channel_get_default_config(dma_rearm_ecu_chan);
+    channel_config_set_transfer_data_size(&rearm_c_ecu, DMA_SIZE_32);
+    channel_config_set_read_increment(&rearm_c_ecu, false);
+    channel_config_set_write_increment(&rearm_c_ecu, false);
+    dma_channel_configure(dma_rearm_ecu_chan, &rearm_c_ecu,
+                          &dma_hw->ch[dma_data_from_ecu_chan].al1_transfer_count_trig,
+                          &ecu_rearm_val,
+                          1,
+                          false);
+
+    static const uint32_t veh_rearm_val = DMA_BLOCK_COUNT_BYTES;
+    dma_channel_config rearm_c_veh = dma_channel_get_default_config(dma_rearm_vehicle_chan);
+    channel_config_set_transfer_data_size(&rearm_c_veh, DMA_SIZE_32);
+    channel_config_set_read_increment(&rearm_c_veh, false);
+    channel_config_set_write_increment(&rearm_c_veh, false);
+    dma_channel_configure(dma_rearm_vehicle_chan, &rearm_c_veh,
+                          &dma_hw->ch[dma_data_from_vehicle_chan].al1_transfer_count_trig,
+                          &veh_rearm_val,
+                          1,
+                          false);
 
     pio_set_irq0_source_enabled(pio, pis_interrupt3, true);
     irq_set_exclusive_handler(pio_get_irq_num(pio, 0), streamer_irq0_handler);

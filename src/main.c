@@ -194,7 +194,7 @@ int main(void)
     sleep_ms(500);
 
 
-    setup_forwarder_with_injector(pio2,
+    setup_forwarder_with_injector(pio1,
                                   RXD_FROM_ECU_PIN, TXD_TO_VEHICLE_PIN,
                                   RXD_FROM_VEHICLE_PIN, TXD_TO_ECU_PIN);
 
